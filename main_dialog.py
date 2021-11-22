@@ -1,3 +1,4 @@
+import fnmatch
 import os
 
 from PySide6 import QtCore, QtWidgets
@@ -25,11 +26,12 @@ class MainDialog(QDialog):
         self.ui.choose_source_folder.clicked.connect(self._choose_source_folder)
         self.ui.source_folder.textChanged.connect(self._populate_file_tree)
 
-        # source file
-        self.ui.choose_source_file.clicked.connect(self._choose_source_file)
-
-        # upload file
-        self.ui.upload_media.clicked.connect(self._upload_cur_media_file)
+        # target files mask
+        self.ui.target_files_mask.setText(settings.get_settings_str_value(SettingsKey.TARGET_FILES_MASK))
+        self.ui.apply_target_files_mask.clicked.connect(self._populate_file_tree)
+        self.ui.apply_target_files_mask.clicked.connect(
+            lambda: settings.set_settings_str_value(SettingsKey.TARGET_FILES_MASK, self.ui.target_files_mask.text())
+        )
 
         # file tree
 
@@ -60,38 +62,53 @@ class MainDialog(QDialog):
         self.ui.source_folder.setText(src_dir)
         settings.set_settings_str_value(SettingsKey.SOURCE_FOLDER, src_dir)
 
-    @Slot(str)
-    def on_folder_path_changed(self, new_text):
-        print(new_text)
-
-    @Slot()
-    def _choose_source_file(self):
-        src_file = QFileDialog.getOpenFileName(self,
-                                               "Choose Source File",
-                                               # "/home/jana"
-                                               filter='Video (*.mp4 *.mov *.ts *.mkv);;'
-                                                      'All Files (*.*)')
-
-        if type(src_file) is tuple:
-            self.ui.source_file.setText(src_file[0])
-
-    @Slot()
-    def _upload_cur_media_file(self):
-        youtube_uploader.upload_media_file(self.ui.source_file.text(), 'Test naming нна русском языке')
-
     @Slot()
     def _populate_file_tree(self):
+        raw_file_mask_str = self.ui.target_files_mask.text()
+        print("=== FILE MASK ===\n"
+              "before")
+        print(raw_file_mask_str)
+
+        if raw_file_mask_str != '':
+            file_mask = ' '.split(raw_file_mask_str)
+        else:
+            file_mask = []
+
+        file_mask = raw_file_mask_str
+
+        print("after")
+        print(file_mask)
+
         self.ui.files_tree.clear()
+
+        print('====\n'
+              f'  mask {file_mask} or {str(file_mask)}\n'
+              '====\n')
 
         def iterate(cur_dir, cur_item):
             for f in os.listdir(cur_dir):
+                # dir or not
                 path = os.path.join(cur_dir, f)
+                print(f"{f} {'   DIR' if os.path.isdir(path) else None}")
                 if os.path.isdir(path):
                     dir_item = QtWidgets.QTreeWidgetItem(cur_item)
                     dir_item.setText(0, f)
+                    dir_item.setDisabled(True)
                     iterate(path, dir_item)
                 else:
                     file_item = QtWidgets.QTreeWidgetItem(cur_item)
                     file_item.setText(0, f)
+
+                    # check mask
+                    file_ext = os.path.splitext(f)
+                    par1 = [f]
+                    par2 = file_mask
+                    print(f"fnmatch.filter({par1}, {par2}) = {fnmatch.filter(par1, par2)}")
+                    print('')
+                    is_target = fnmatch.filter(par1, par2)
+                    if is_target:
+                        file_item.setText(1, 'Ready')
+                    else:
+                        file_item.setDisabled(True)
 
         iterate(self.ui.source_folder.text(), self.ui.files_tree)

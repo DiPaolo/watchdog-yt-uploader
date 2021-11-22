@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>640</width>
-    <height>486</height>
+    <width>1134</width>
+    <height>776</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -37,11 +37,17 @@
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>Settings</string>
+       <string>Setup</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0" colspan="2">
+       <item row="0" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="bottomMargin">
+          <number>5</number>
+         </property>
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
@@ -61,36 +67,41 @@
          </item>
         </layout>
        </item>
-       <item row="2" column="0" colspan="2">
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
+       <item row="1" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
          <item>
-          <widget class="QLabel" name="label_4">
+          <widget class="QLabel" name="label_5">
            <property name="text">
-            <string>Source File:</string>
+            <string>Target Files Mask</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="source_file"/>
+          <widget class="QLineEdit" name="target_files_mask"/>
          </item>
          <item>
-          <widget class="QToolButton" name="choose_source_file">
+          <widget class="QPushButton" name="apply_target_files_mask">
            <property name="text">
-            <string>...</string>
+            <string>Apply</string>
            </property>
           </widget>
          </item>
         </layout>
        </item>
-       <item row="3" column="0" colspan="2">
-        <widget class="Line" name="line_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0" colspan="2">
+       <item row="2" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout">
+         <property name="spacing">
+          <number>-1</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
          <item>
           <widget class="QLabel" name="label_2">
            <property name="text">
@@ -100,6 +111,9 @@
          </item>
          <item>
           <widget class="QLineEdit" name="yt_channel_name">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
            <property name="readOnly">
             <bool>true</bool>
            </property>
@@ -108,14 +122,17 @@
          <item>
           <widget class="QPushButton" name="upload_media">
            <property name="text">
-            <string>Upload</string>
+            <string>Change</string>
            </property>
           </widget>
          </item>
         </layout>
        </item>
-       <item row="5" column="0" colspan="2">
+       <item row="3" column="0">
         <widget class="QTreeWidget" name="files_tree">
+         <attribute name="headerStretchLastSection">
+          <bool>true</bool>
+         </attribute>
          <column>
           <property name="text">
            <string>File</string>
@@ -133,55 +150,55 @@
          </column>
         </widget>
        </item>
-       <item row="1" column="0" colspan="2">
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <item row="4" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
-          <widget class="Line" name="line">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_3">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
+          <widget class="QLabel" name="label_6">
            <property name="text">
-            <string>or</string>
+            <string>Check Period:</string>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="Line" name="line_2">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+          <widget class="QSpinBox" name="spinBox"/>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>min</string>
            </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="start_watch">
+           <property name="text">
+            <string>Start Watch</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="stop_watch">
+           <property name="text">
+            <string>Stop Watch</string>
            </property>
           </widget>
          </item>
         </layout>
        </item>
       </layout>
-     </widget>
-     <widget class="QWidget" name="tab_3">
-      <attribute name="title">
-       <string>Page</string>
-      </attribute>
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
@@ -197,6 +214,20 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>source_folder</tabstop>
+  <tabstop>choose_source_folder</tabstop>
+  <tabstop>target_files_mask</tabstop>
+  <tabstop>apply_target_files_mask</tabstop>
+  <tabstop>yt_channel_name</tabstop>
+  <tabstop>upload_media</tabstop>
+  <tabstop>files_tree</tabstop>
+  <tabstop>spinBox</tabstop>
+  <tabstop>start_watch</tabstop>
+  <tabstop>stop_watch</tabstop>
+  <tabstop>log_list</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

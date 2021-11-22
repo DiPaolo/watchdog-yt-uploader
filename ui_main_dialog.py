@@ -16,16 +16,16 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QFrame, QGridLayout, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QPushButton, QSizePolicy,
-    QTabWidget, QTableWidget, QTableWidgetItem, QToolButton,
-    QTreeWidget, QTreeWidgetItem, QWidget)
+    QGridLayout, QHBoxLayout, QHeaderView, QLabel,
+    QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
+    QSpinBox, QTabWidget, QTableWidget, QTableWidgetItem,
+    QToolButton, QTreeWidget, QTreeWidgetItem, QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         if not Dialog.objectName():
             Dialog.setObjectName(u"Dialog")
-        Dialog.resize(640, 486)
+        Dialog.resize(1134, 776)
         self.gridLayout_2 = QGridLayout(Dialog)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.buttonBox = QDialogButtonBox(Dialog)
@@ -45,6 +45,7 @@ class Ui_Dialog(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalLayout_2.setContentsMargins(-1, 5, -1, 5)
         self.label = QLabel(self.tab)
         self.label.setObjectName(u"label")
 
@@ -61,37 +62,34 @@ class Ui_Dialog(object):
         self.horizontalLayout_2.addWidget(self.choose_source_folder)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
 
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.label_4 = QLabel(self.tab)
-        self.label_4.setObjectName(u"label_4")
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.label_5 = QLabel(self.tab)
+        self.label_5.setObjectName(u"label_5")
 
-        self.horizontalLayout_4.addWidget(self.label_4)
+        self.horizontalLayout_5.addWidget(self.label_5)
 
-        self.source_file = QLineEdit(self.tab)
-        self.source_file.setObjectName(u"source_file")
+        self.target_files_mask = QLineEdit(self.tab)
+        self.target_files_mask.setObjectName(u"target_files_mask")
 
-        self.horizontalLayout_4.addWidget(self.source_file)
+        self.horizontalLayout_5.addWidget(self.target_files_mask)
 
-        self.choose_source_file = QToolButton(self.tab)
-        self.choose_source_file.setObjectName(u"choose_source_file")
+        self.apply_target_files_mask = QPushButton(self.tab)
+        self.apply_target_files_mask.setObjectName(u"apply_target_files_mask")
 
-        self.horizontalLayout_4.addWidget(self.choose_source_file)
+        self.horizontalLayout_5.addWidget(self.apply_target_files_mask)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_4, 2, 0, 1, 2)
-
-        self.line_3 = QFrame(self.tab)
-        self.line_3.setObjectName(u"line_3")
-        self.line_3.setFrameShape(QFrame.HLine)
-        self.line_3.setFrameShadow(QFrame.Sunken)
-
-        self.gridLayout.addWidget(self.line_3, 3, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout_5, 1, 0, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
+#ifndef Q_OS_MAC
+        self.horizontalLayout.setSpacing(-1)
+#endif
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(0, 0, -1, 0)
         self.label_2 = QLabel(self.tab)
         self.label_2.setObjectName(u"label_2")
 
@@ -99,6 +97,7 @@ class Ui_Dialog(object):
 
         self.yt_channel_name = QLineEdit(self.tab)
         self.yt_channel_name.setObjectName(u"yt_channel_name")
+        self.yt_channel_name.setEnabled(True)
         self.yt_channel_name.setReadOnly(True)
 
         self.horizontalLayout.addWidget(self.yt_channel_name)
@@ -109,53 +108,49 @@ class Ui_Dialog(object):
         self.horizontalLayout.addWidget(self.upload_media)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout, 4, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout, 2, 0, 1, 1)
 
         self.files_tree = QTreeWidget(self.tab)
         self.files_tree.setObjectName(u"files_tree")
+        self.files_tree.header().setStretchLastSection(True)
 
-        self.gridLayout.addWidget(self.files_tree, 5, 0, 1, 2)
+        self.gridLayout.addWidget(self.files_tree, 3, 0, 1, 1)
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.line = QFrame(self.tab)
-        self.line.setObjectName(u"line")
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.line.sizePolicy().hasHeightForWidth())
-        self.line.setSizePolicy(sizePolicy)
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Sunken)
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.label_6 = QLabel(self.tab)
+        self.label_6.setObjectName(u"label_6")
 
-        self.horizontalLayout_3.addWidget(self.line)
+        self.horizontalLayout_6.addWidget(self.label_6)
 
-        self.label_3 = QLabel(self.tab)
-        self.label_3.setObjectName(u"label_3")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.label_3.sizePolicy().hasHeightForWidth())
-        self.label_3.setSizePolicy(sizePolicy1)
+        self.spinBox = QSpinBox(self.tab)
+        self.spinBox.setObjectName(u"spinBox")
 
-        self.horizontalLayout_3.addWidget(self.label_3)
+        self.horizontalLayout_6.addWidget(self.spinBox)
 
-        self.line_2 = QFrame(self.tab)
-        self.line_2.setObjectName(u"line_2")
-        sizePolicy.setHeightForWidth(self.line_2.sizePolicy().hasHeightForWidth())
-        self.line_2.setSizePolicy(sizePolicy)
-        self.line_2.setFrameShape(QFrame.HLine)
-        self.line_2.setFrameShadow(QFrame.Sunken)
+        self.label_7 = QLabel(self.tab)
+        self.label_7.setObjectName(u"label_7")
 
-        self.horizontalLayout_3.addWidget(self.line_2)
+        self.horizontalLayout_6.addWidget(self.label_7)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_6.addItem(self.horizontalSpacer)
+
+        self.start_watch = QPushButton(self.tab)
+        self.start_watch.setObjectName(u"start_watch")
+
+        self.horizontalLayout_6.addWidget(self.start_watch)
+
+        self.stop_watch = QPushButton(self.tab)
+        self.stop_watch.setObjectName(u"stop_watch")
+
+        self.horizontalLayout_6.addWidget(self.stop_watch)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_3, 1, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout_6, 4, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab, "")
-        self.tab_3 = QWidget()
-        self.tab_3.setObjectName(u"tab_3")
-        self.tabWidget.addTab(self.tab_3, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
         self.gridLayout_3 = QGridLayout(self.tab_2)
@@ -169,6 +164,17 @@ class Ui_Dialog(object):
 
         self.gridLayout_2.addWidget(self.tabWidget, 1, 0, 1, 1)
 
+        QWidget.setTabOrder(self.tabWidget, self.source_folder)
+        QWidget.setTabOrder(self.source_folder, self.choose_source_folder)
+        QWidget.setTabOrder(self.choose_source_folder, self.target_files_mask)
+        QWidget.setTabOrder(self.target_files_mask, self.apply_target_files_mask)
+        QWidget.setTabOrder(self.apply_target_files_mask, self.yt_channel_name)
+        QWidget.setTabOrder(self.yt_channel_name, self.upload_media)
+        QWidget.setTabOrder(self.upload_media, self.files_tree)
+        QWidget.setTabOrder(self.files_tree, self.spinBox)
+        QWidget.setTabOrder(self.spinBox, self.start_watch)
+        QWidget.setTabOrder(self.start_watch, self.stop_watch)
+        QWidget.setTabOrder(self.stop_watch, self.log_list)
 
         self.retranslateUi(Dialog)
         self.buttonBox.accepted.connect(Dialog.accept)
@@ -184,17 +190,19 @@ class Ui_Dialog(object):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
         self.label.setText(QCoreApplication.translate("Dialog", u"Source Folder:", None))
         self.choose_source_folder.setText(QCoreApplication.translate("Dialog", u"...", None))
-        self.label_4.setText(QCoreApplication.translate("Dialog", u"Source File:", None))
-        self.choose_source_file.setText(QCoreApplication.translate("Dialog", u"...", None))
+        self.label_5.setText(QCoreApplication.translate("Dialog", u"Target Files Mask", None))
+        self.apply_target_files_mask.setText(QCoreApplication.translate("Dialog", u"Apply", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"YouTube Channel:", None))
-        self.upload_media.setText(QCoreApplication.translate("Dialog", u"Upload", None))
+        self.upload_media.setText(QCoreApplication.translate("Dialog", u"Change", None))
         ___qtreewidgetitem = self.files_tree.headerItem()
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("Dialog", u"Actions", None));
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("Dialog", u"Status", None));
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("Dialog", u"File", None));
-        self.label_3.setText(QCoreApplication.translate("Dialog", u"or", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Settings", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), QCoreApplication.translate("Dialog", u"Page", None))
+        self.label_6.setText(QCoreApplication.translate("Dialog", u"Check Period:", None))
+        self.label_7.setText(QCoreApplication.translate("Dialog", u"min", None))
+        self.start_watch.setText(QCoreApplication.translate("Dialog", u"Start Watch", None))
+        self.stop_watch.setText(QCoreApplication.translate("Dialog", u"Stop Watch", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Setup", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Log", None))
     # retranslateUi
 
