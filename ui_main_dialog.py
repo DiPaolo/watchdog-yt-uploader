@@ -15,11 +15,12 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QAbstractButton, QApplication, QDialog, QDialogButtonBox,
-    QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-    QLineEdit, QPushButton, QSizePolicy, QSpacerItem,
-    QSpinBox, QTabWidget, QTableWidget, QTableWidgetItem,
-    QToolButton, QTreeWidget, QTreeWidgetItem, QWidget)
+from PySide6.QtWidgets import (QAbstractButton, QApplication, QCheckBox, QDialog,
+    QDialogButtonBox, QGridLayout, QHBoxLayout, QHeaderView,
+    QLabel, QLineEdit, QPushButton, QSizePolicy,
+    QSpacerItem, QTabWidget, QTableWidget, QTableWidgetItem,
+    QTimeEdit, QToolButton, QTreeWidget, QTreeWidgetItem,
+    QWidget)
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -110,11 +111,30 @@ class Ui_Dialog(object):
 
         self.gridLayout.addLayout(self.horizontalLayout, 2, 0, 1, 1)
 
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.target_files_stats = QLabel(self.tab)
+        self.target_files_stats.setObjectName(u"target_files_stats")
+
+        self.horizontalLayout_3.addWidget(self.target_files_stats)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
+
+        self.show_target_files_only = QCheckBox(self.tab)
+        self.show_target_files_only.setObjectName(u"show_target_files_only")
+
+        self.horizontalLayout_3.addWidget(self.show_target_files_only)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)
+
         self.files_tree = QTreeWidget(self.tab)
         self.files_tree.setObjectName(u"files_tree")
         self.files_tree.header().setStretchLastSection(True)
 
-        self.gridLayout.addWidget(self.files_tree, 3, 0, 1, 1)
+        self.gridLayout.addWidget(self.files_tree, 4, 0, 1, 1)
 
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
@@ -123,10 +143,11 @@ class Ui_Dialog(object):
 
         self.horizontalLayout_6.addWidget(self.label_6)
 
-        self.spinBox = QSpinBox(self.tab)
-        self.spinBox.setObjectName(u"spinBox")
+        self.check_period = QTimeEdit(self.tab)
+        self.check_period.setObjectName(u"check_period")
+        self.check_period.setTime(QTime(0, 15, 0))
 
-        self.horizontalLayout_6.addWidget(self.spinBox)
+        self.horizontalLayout_6.addWidget(self.check_period)
 
         self.label_7 = QLabel(self.tab)
         self.label_7.setObjectName(u"label_7")
@@ -148,7 +169,7 @@ class Ui_Dialog(object):
         self.horizontalLayout_6.addWidget(self.stop_watch)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_6, 4, 0, 1, 1)
+        self.gridLayout.addLayout(self.horizontalLayout_6, 5, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
@@ -171,8 +192,8 @@ class Ui_Dialog(object):
         QWidget.setTabOrder(self.apply_target_files_mask, self.yt_channel_name)
         QWidget.setTabOrder(self.yt_channel_name, self.upload_media)
         QWidget.setTabOrder(self.upload_media, self.files_tree)
-        QWidget.setTabOrder(self.files_tree, self.spinBox)
-        QWidget.setTabOrder(self.spinBox, self.start_watch)
+        QWidget.setTabOrder(self.files_tree, self.check_period)
+        QWidget.setTabOrder(self.check_period, self.start_watch)
         QWidget.setTabOrder(self.start_watch, self.stop_watch)
         QWidget.setTabOrder(self.stop_watch, self.log_list)
 
@@ -194,12 +215,15 @@ class Ui_Dialog(object):
         self.apply_target_files_mask.setText(QCoreApplication.translate("Dialog", u"Apply", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"YouTube Channel:", None))
         self.upload_media.setText(QCoreApplication.translate("Dialog", u"Change", None))
+        self.target_files_stats.setText(QCoreApplication.translate("Dialog", u"<placeholder>", None))
+        self.show_target_files_only.setText(QCoreApplication.translate("Dialog", u"Show Target Files Only", None))
         ___qtreewidgetitem = self.files_tree.headerItem()
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("Dialog", u"Actions", None));
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("Dialog", u"Status", None));
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("Dialog", u"File", None));
         self.label_6.setText(QCoreApplication.translate("Dialog", u"Check Period:", None))
-        self.label_7.setText(QCoreApplication.translate("Dialog", u"min", None))
+        self.check_period.setDisplayFormat(QCoreApplication.translate("Dialog", u"HH:mm:ss", None))
+        self.label_7.setText(QCoreApplication.translate("Dialog", u"(HH:mm:ss)", None))
         self.start_watch.setText(QCoreApplication.translate("Dialog", u"Start Watch", None))
         self.stop_watch.setText(QCoreApplication.translate("Dialog", u"Stop Watch", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Setup", None))

@@ -129,6 +129,37 @@
         </layout>
        </item>
        <item row="3" column="0">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <widget class="QLabel" name="target_files_stats">
+           <property name="text">
+            <string>&lt;placeholder&gt;</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="show_target_files_only">
+           <property name="text">
+            <string>Show Target Files Only</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="0">
         <widget class="QTreeWidget" name="files_tree">
          <attribute name="headerStretchLastSection">
           <bool>true</bool>
@@ -150,7 +181,7 @@
          </column>
         </widget>
        </item>
-       <item row="4" column="0">
+       <item row="5" column="0">
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
           <widget class="QLabel" name="label_6">
@@ -160,12 +191,23 @@
           </widget>
          </item>
          <item>
-          <widget class="QSpinBox" name="spinBox"/>
+          <widget class="QTimeEdit" name="check_period">
+           <property name="displayFormat">
+            <string>HH:mm:ss</string>
+           </property>
+           <property name="time">
+            <time>
+             <hour>0</hour>
+             <minute>15</minute>
+             <second>0</second>
+            </time>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QLabel" name="label_7">
            <property name="text">
-            <string>min</string>
+            <string>(HH:mm:ss)</string>
            </property>
           </widget>
          </item>
@@ -223,7 +265,7 @@
   <tabstop>yt_channel_name</tabstop>
   <tabstop>upload_media</tabstop>
   <tabstop>files_tree</tabstop>
-  <tabstop>spinBox</tabstop>
+  <tabstop>check_period</tabstop>
   <tabstop>start_watch</tabstop>
   <tabstop>stop_watch</tabstop>
   <tabstop>log_list</tabstop>

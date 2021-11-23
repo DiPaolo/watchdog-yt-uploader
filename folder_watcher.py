@@ -2,8 +2,7 @@ import datetime
 from threading import Timer
 
 
-class FolderWatcher:
-
+class FolderWatcher(object):
     def __init__(self):
         self.period = None
         self.t = None
@@ -19,7 +18,8 @@ class FolderWatcher:
 
     def stop(self):
         print('STOP')
-        self.t.stop()
+        if self.t:
+            self.t.cancel()
 
     def process(self):
         print('   process')
