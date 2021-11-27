@@ -132,6 +132,7 @@ class Ui_Dialog(object):
 
         self.files_tree = QTreeWidget(self.tab)
         self.files_tree.setObjectName(u"files_tree")
+        self.files_tree.setSortingEnabled(True)
         self.files_tree.header().setStretchLastSection(True)
 
         self.gridLayout.addWidget(self.files_tree, 4, 0, 1, 1)
