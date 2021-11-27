@@ -1,5 +1,11 @@
 import os
 import pprint
+import queue
+import random
+import shutil
+import threading
+import time
+from dataclasses import dataclass
 
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
@@ -7,11 +13,79 @@ import googleapiclient.errors
 from googleapiclient.http import MediaFileUpload
 import google.oauth2.credentials
 
+import config
+import logger
+
 scopes = ["https://www.googleapis.com/auth/youtube.upload"]
 user_cred_json = 'qqqwtf.json'
 
 
-def upload_media_file(filename: str, title: str, description: str):
+@dataclass
+class MediaFile:
+    filename: str
+    title: str
+    description: str
+
+
+class YouTubeUploader(object):
+    def __init__(self):
+        self.q = queue.Queue()
+        self.worker = None
+
+    def __del__(self):
+        if self.worker:
+            self.worker.stop()
+
+    def start(self):
+        if self.worker:
+            self.stop()
+
+        self.worker = Worker(self.q)
+        self.worker.start()
+
+    def stop(self):
+        if self.worker:
+            self.worker.stop()
+            self.worker = None
+
+    def queue_media_file(self, media: MediaFile):
+        logger.debug(f'queued new media file. Queue has approx. {self.q.qsize()} items now')
+        self.q.put(media)
+
+
+class Worker(threading.Thread):
+    def __init__(self, q, *args, **kwargs):
+        self.is_stopped = True
+        self.q = q
+        super().__init__(*args, **kwargs)
+
+    def run(self):
+        logger.debug('start worker')
+        self.is_stopped = False
+        while True:
+            item = None
+            try:
+                item = self.q.get(timeout=1)
+            except queue.Empty:
+                if self.is_stopped:
+                    return
+
+            if item:
+                logger.debug(f'process item from queue. Queue has approx. {self.q.qsize()} items left')
+                if config.DEBUG:
+                    _upload_media_file_mock(item.filename, item.title, item.description)
+                else:
+                    _upload_media_file(item.filename, item.title, item.description)
+                self.q.task_done()
+            else:
+                time.sleep(5)
+
+    def stop(self):
+        logger.debug('stop worker')
+        self.is_stopped = True
+
+
+def _upload_media_file(filename: str, title: str, description: str):
     # Disable OAuthlib's HTTPS verification when running locally.
     # *DO NOT* leave this option enabled in production.
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -27,13 +101,13 @@ def upload_media_file(filename: str, title: str, description: str):
 
     if not os.path.exists(user_cred_json):
         credentials = flow.run_local_server()
-        print('Got new credentials')
+        logger.info('Got new credentials')
         pprint.pprint(credentials)
 
         with open(user_cred_json, 'wt+') as f:
             f.write(credentials.to_json())
     else:
-        print('Use previously saved credentials')
+        logger.info('Use previously saved credentials')
         credentials = google.oauth2.credentials.Credentials.from_authorized_user_file(user_cred_json)
 
     youtube = googleapiclient.discovery.build(
@@ -57,10 +131,21 @@ def upload_media_file(filename: str, title: str, description: str):
         media_body=MediaFileUpload(filename)
     )
 
-    print('Sending request...')
+    logger.debug('Sending request...')
     try:
         response = request.execute()
-        print('Got the response:')
-        pprint.pprint(response)
+        logger.debug('Got the response:')
+        logger.debug(response)
     except googleapiclient.errors.HttpError as e:
-        print(f'ERROR failed to upload video. Reason: {e.reason}')
+        logger.debug(f'ERROR failed to upload video. Reason: {e.reason}')
+
+
+def _upload_media_file_mock(filename: str, title: str, description: str):
+    duration_sec = random.randrange(3, 10)
+    logger.info(f' === Upload {filename} to {config.UPLOADER_MOCK_DIR} in {duration_sec} seconds ===')
+
+    if not os.path.exists(config.UPLOADER_MOCK_DIR):
+        os.mkdir(config.UPLOADER_MOCK_DIR)
+    shutil.copyfile(filename, os.path.join(config.UPLOADER_MOCK_DIR, os.path.basename(filename)))
+
+    time.sleep(duration_sec)

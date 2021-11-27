@@ -10,6 +10,8 @@ from PySide6.QtCore import Slot, QTimer
 import config
 import logger
 import settings
+import uploader.youtube_uploader
+from uploader.youtube_uploader import YouTubeUploader
 from folder_watcher import FolderWatcher
 from settings import SettingsKey
 from storage.storage import Storage
@@ -22,6 +24,7 @@ class MainDialog(QDialog):
 
         self.storage = Storage()
         self.watcher = FolderWatcher()
+        self.uploader = YouTubeUploader()
 
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -73,6 +76,7 @@ class MainDialog(QDialog):
 
     def closeEvent(self, event):
         self.watcher.stop()
+        self.uploader.stop()
 
         # save window position and size
         settings.set_settings_byte_array_value(SettingsKey.WINDOW_GEOMETRY, self.saveGeometry())
@@ -92,14 +96,7 @@ class MainDialog(QDialog):
 
     @Slot()
     def _scan_folder(self):
-        # self.ui.files_tree.clear()
-        # file_mask = self._get_target_file_mask_list()
         file_mask = self.ui.target_files_mask.text().split(' ')
-
-        if config.DEBUG:
-            print('====\n'
-                  f'  mask {file_mask} or {str(file_mask)}\n'
-                  '====\n')
 
         show_target_files_only = self.ui.show_target_files_only.isChecked()
         stats = dict(
@@ -119,8 +116,6 @@ class MainDialog(QDialog):
             :param parent: can be None what means the new item must be added on top level
             :return: the newly created item or None if failed
             """
-            if config.DEBUG:
-                print(f"{filename} {'   DIR' if os.path.isdir(path) else None}")
 
             new_item = QtWidgets.QTreeWidgetItem()
 
@@ -130,16 +125,11 @@ class MainDialog(QDialog):
                 new_item.setText(0, filename)
             else:
                 stats['total_files'] += 1
+
                 # check mask
-                file_ext = os.path.splitext(filename)
                 is_target = False
                 for mask in file_mask:
-                    par1 = [filename]
-                    par2 = mask
-                    if config.DEBUG:
-                        print(f"fnmatch.filter({par1}, {par2}) = {fnmatch.filter(par1, par2)}")
-                        print('')
-                    is_target = len(fnmatch.filter(par1, par2)) > 0
+                    is_target = len(fnmatch.filter([filename], mask)) > 0
                     if is_target:
                         break
 
@@ -152,11 +142,11 @@ class MainDialog(QDialog):
                     new_item.setText(1, 'On Target')
                     cur_file_hash = self.storage.add_media_file(full_path)
                     if cur_file_hash == '':
-                        # parent.removeChild(parent)
                         logger.error(f'failed to add file {filename} into storage')
                         return None
                     else:
                         new_item.setData(0, Qt.UserRole, cur_file_hash)
+                        self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(full_path, 'My title', 'My desc'))
 
                     # orange
                     orange = QtGui.QColor(0xFF, 0x99, 0x33)
@@ -230,11 +220,15 @@ class MainDialog(QDialog):
         self._set_all_controls_enabled(False)
         self.ui.stop_watch.setEnabled(True)
 
+        self.uploader.start()
+
     @Slot()
     def _stop_watch(self):
         self.watcher.stop()
         self._set_all_controls_enabled(False)
         self.ui.start_watch.setEnabled(True)
+
+        self.uploader.stop()
 
     def _set_all_controls_enabled(self, enabled: bool = True):
         self.ui.source_folder.setEnabled(enabled)
