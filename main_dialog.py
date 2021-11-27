@@ -2,14 +2,16 @@ import datetime
 import fnmatch
 import os
 
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtWidgets, QtGui
+from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QFileDialog
-from PySide6.QtCore import Slot, QSettings, QTimer
+from PySide6.QtCore import Slot, QTimer
 
+import logger
 import settings
 from folder_watcher import FolderWatcher
 from settings import SettingsKey
-import youtube_uploader
+from storage.storage import Storage
 from ui_main_dialog import Ui_Dialog
 
 
@@ -17,6 +19,7 @@ class MainDialog(QDialog):
     def __init__(self):
         super(MainDialog, self).__init__()
 
+        self.storage = Storage()
         self.watcher = FolderWatcher()
 
         self.ui = Ui_Dialog()
@@ -29,23 +32,23 @@ class MainDialog(QDialog):
         # source folder
         self.ui.source_folder.setText(settings.get_settings_str_value(SettingsKey.SOURCE_FOLDER, ''))
         self.ui.choose_source_folder.clicked.connect(self._choose_source_folder)
-        self.ui.source_folder.textChanged.connect(self._populate_file_tree)
+        self.ui.source_folder.textChanged.connect(self._scan_folder)
 
         # target files mask
         self.ui.target_files_mask.setText(settings.get_settings_str_value(SettingsKey.TARGET_FILES_MASK))
-        self.ui.apply_target_files_mask.clicked.connect(self._populate_file_tree)
+        self.ui.apply_target_files_mask.clicked.connect(self._scan_folder)
         self.ui.apply_target_files_mask.clicked.connect(
             lambda: settings.set_settings_str_value(SettingsKey.TARGET_FILES_MASK, self.ui.target_files_mask.text())
         )
 
         # show target files only
-        self.ui.show_target_files_only.clicked.connect(self._populate_file_tree)
+        self.ui.show_target_files_only.clicked.connect(self._scan_folder)
 
         #
         # file tree
         #
 
-        self._populate_file_tree()
+        self._scan_folder()
 
         def resize_file_tree_columns():
             file_tree_width = self.ui.files_tree.width()
@@ -80,7 +83,7 @@ class MainDialog(QDialog):
         settings.set_settings_str_value(SettingsKey.SOURCE_FOLDER, src_dir)
 
     @Slot()
-    def _populate_file_tree(self):
+    def _scan_folder(self):
         self.ui.files_tree.clear()
         # file_mask = self._get_target_file_mask_list()
         file_mask = self.ui.target_files_mask.text().split(' ')
@@ -92,7 +95,10 @@ class MainDialog(QDialog):
         show_target_files_only = self.ui.show_target_files_only.isChecked()
         stats = dict(
             total_files=0,
-            target_files=0
+            target_files=0,
+            queued_files=0,
+            uploaded_files=0,
+            error_files=0,
         )
 
         def iterate(cur_dir, cur_item):
@@ -126,16 +132,35 @@ class MainDialog(QDialog):
                     if is_target:
                         stats['target_files'] += 1
                         file_item.setDisabled(False)
-                        file_item.setText(1, 'Ready')
+                        file_item.setText(1, 'On Target')
+                        cur_file_hash = self.storage.add_media_file(path)
+                        if cur_file_hash == '':
+                            cur_item.removeChild(cur_item)
+                            logger.error(f'failed to add file {f} into storage')
+                            continue
+                        else:
+                            file_item.setData(0, Qt.UserRole, cur_file_hash)
+
+                        # orange
+                        orange = QtGui.QColor(0xFF, 0x99, 0x33)
+                        file_item.setForeground(0, orange)
+                        file_item.setForeground(1, orange)
+                        file_item.setForeground(2, orange)
                     elif file_item:
                         file_item.setDisabled(True)
 
         iterate(self.ui.source_folder.text(), self.ui.files_tree)
-        self.ui.target_files_stats.setText(f"Total files: {stats['total_files']} | target files: {stats['target_files']}")
+        self.ui.target_files_stats.setText(f"Total files: {stats['total_files']} | "
+                                           f"on target: {stats['target_files']} | "
+                                           f"queued: {stats['queued_files']}"
+                                           f"uploaded: {stats['uploaded_files']} | "
+                                           f"error files: {stats['error_files']}")
 
     @Slot()
     def _start_watch(self):
         check_time_in_msec = self.ui.check_period.time().msecsSinceStartOfDay()
+        # expand all items to let the user ability to see all the items while they're disabled
+        # self.ui.files_tree.expandAll()
         self.watcher.start(self.ui.source_folder.text(), datetime.timedelta(milliseconds=check_time_in_msec))
         self._set_all_controls_enabled(False)
         self.ui.stop_watch.setEnabled(True)
@@ -153,12 +178,8 @@ class MainDialog(QDialog):
         self.ui.apply_target_files_mask.setEnabled(enabled)
         self.ui.yt_channel_name.setEnabled(enabled)
         self.ui.upload_media.setEnabled(enabled)
-        self.ui.files_tree.setEnabled(enabled)
+        # self.ui.show_target_files_only.setEnabled(enabled)
+        # self.ui.files_tree.setEnabled(enabled)
         self.ui.check_period.setEnabled(enabled)
         self.ui.start_watch.setEnabled(enabled)
         self.ui.stop_watch.setEnabled(enabled)
-
-    # def _get_target_file_mask_list(self) -> list[str]:
-    #     raw_text = self.ui.target_files_mask.text()
-    #     output = ' '.split(raw_text)
-    #     return output if output != '' else [raw_text]
