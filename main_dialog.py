@@ -2,11 +2,12 @@ import datetime
 import fnmatch
 import os
 
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtWidgets, QtGui, QtCore
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtCore import Slot, QTimer
 
+import config
 import logger
 import settings
 from folder_watcher import FolderWatcher
@@ -59,6 +60,13 @@ class MainDialog(QDialog):
         # wait while the main dialog has been resized
         QTimer.singleShot(200, resize_file_tree_columns)
 
+        # check period
+        self.ui.check_period.setTime(QtCore.QTime.fromMSecsSinceStartOfDay(
+            settings.get_settings_int_value(SettingsKey.CHECK_PERIOD_MSECS, 15 * 1000 * 60)))
+        self.ui.check_period.timeChanged.connect(
+            lambda val: settings.set_settings_str_value(SettingsKey.CHECK_PERIOD_MSECS, val.msecsSinceStartOfDay())
+        )
+
         # start/stop watch
         self.ui.start_watch.clicked.connect(self._start_watch)
         self.ui.stop_watch.clicked.connect(self._stop_watch)
@@ -84,13 +92,14 @@ class MainDialog(QDialog):
 
     @Slot()
     def _scan_folder(self):
-        self.ui.files_tree.clear()
+        # self.ui.files_tree.clear()
         # file_mask = self._get_target_file_mask_list()
         file_mask = self.ui.target_files_mask.text().split(' ')
 
-        print('====\n'
-              f'  mask {file_mask} or {str(file_mask)}\n'
-              '====\n')
+        if config.DEBUG:
+            print('====\n'
+                  f'  mask {file_mask} or {str(file_mask)}\n'
+                  '====\n')
 
         show_target_files_only = self.ui.show_target_files_only.isChecked()
         stats = dict(
@@ -101,55 +110,111 @@ class MainDialog(QDialog):
             error_files=0,
         )
 
-        def iterate(cur_dir, cur_item):
-            for f in os.listdir(cur_dir):
-                # dir or not
-                path = os.path.join(cur_dir, f)
-                print(f"{f} {'   DIR' if os.path.isdir(path) else None}")
-                if os.path.isdir(path):
-                    dir_item = QtWidgets.QTreeWidgetItem(cur_item)
-                    dir_item.setText(0, f)
-                    iterate(path, dir_item)
-                else:
-                    stats['total_files'] += 1
-                    # check mask
-                    file_ext = os.path.splitext(f)
-                    is_target = False
-                    for mask in file_mask:
-                        par1 = [f]
-                        par2 = mask
+        def add_item(path: str, filename: str, parent: QtWidgets.QTreeWidgetItem) -> QtWidgets.QTreeWidgetItem:
+            """
+            Add new item into the tree widget
+
+            :param filename:
+            :param path:
+            :param parent: can be None what means the new item must be added on top level
+            :return: the newly created item or None if failed
+            """
+            if config.DEBUG:
+                print(f"{filename} {'   DIR' if os.path.isdir(path) else None}")
+
+            new_item = QtWidgets.QTreeWidgetItem()
+
+            # dir or not
+            full_path = os.path.join(path, filename)
+            if os.path.isdir(full_path):
+                new_item.setText(0, filename)
+            else:
+                stats['total_files'] += 1
+                # check mask
+                file_ext = os.path.splitext(filename)
+                is_target = False
+                for mask in file_mask:
+                    par1 = [filename]
+                    par2 = mask
+                    if config.DEBUG:
                         print(f"fnmatch.filter({par1}, {par2}) = {fnmatch.filter(par1, par2)}")
                         print('')
-                        is_target = len(fnmatch.filter(par1, par2)) > 0
-                        if is_target:
+                    is_target = len(fnmatch.filter(par1, par2)) > 0
+                    if is_target:
+                        break
+
+                if is_target or not show_target_files_only:
+                    new_item.setText(0, filename)
+
+                if is_target:
+                    stats['target_files'] += 1
+                    new_item.setDisabled(False)
+                    new_item.setText(1, 'On Target')
+                    cur_file_hash = self.storage.add_media_file(full_path)
+                    if cur_file_hash == '':
+                        # parent.removeChild(parent)
+                        logger.error(f'failed to add file {filename} into storage')
+                        return None
+                    else:
+                        new_item.setData(0, Qt.UserRole, cur_file_hash)
+
+                    # orange
+                    orange = QtGui.QColor(0xFF, 0x99, 0x33)
+                    new_item.setForeground(0, orange)
+                    new_item.setForeground(1, orange)
+                    new_item.setForeground(2, orange)
+                elif new_item:
+                    new_item.setDisabled(True)
+
+            parent.addChild(new_item) if parent else self.ui.files_tree.addTopLevelItem(new_item)
+            return new_item
+
+        def iterate(cur_dir: str, cur_item: QtWidgets.QTreeWidgetItem):
+
+            def iterate_child_items(parent_item: QtWidgets.QTreeWidgetItem, func):
+                if parent_item is None:
+                    for idx in range(0, self.ui.files_tree.topLevelItemCount()):
+                        func(self.ui.files_tree.topLevelItem(idx))
+                else:
+                    for idx in range(0, parent_item.childCount()):
+                        func(parent_item.child(idx))
+
+            # prepare two sets (current state of disk + current state in TreeWidget) to compare them later
+            disk_set = set(os.listdir(cur_dir))
+            ui_set = set()
+            iterate_child_items(cur_item, lambda child_item: ui_set.add(child_item.text(0)))
+
+            # 1. remove outdated items from tree
+            items_to_remove = ui_set - disk_set
+            for item in items_to_remove:
+                if cur_item is None:
+                    for i in range(0, self.ui.files_tree.topLevelItemCount()):
+                        if item == self.ui.files_tree.topLevelItem(i).text(0):
+                            self.ui.files_tree.takeTopLevelItem(i)
+                            break
+                else:
+                    for i in range(0, cur_item.childCount()):
+                        ui_item = cur_item.child(i)
+                        if item == ui_item.text(0):
+                            cur_item.removeChild(ui_item)
                             break
 
-                    file_item = None
-                    if is_target or not show_target_files_only:
-                        file_item = QtWidgets.QTreeWidgetItem(cur_item)
-                        file_item.setText(0, f)
+                # TODO remove from storage
 
-                    if is_target:
-                        stats['target_files'] += 1
-                        file_item.setDisabled(False)
-                        file_item.setText(1, 'On Target')
-                        cur_file_hash = self.storage.add_media_file(path)
-                        if cur_file_hash == '':
-                            cur_item.removeChild(cur_item)
-                            logger.error(f'failed to add file {f} into storage')
-                            continue
-                        else:
-                            file_item.setData(0, Qt.UserRole, cur_file_hash)
+            # 2. add new ones to the tree
+            items_to_add = disk_set - ui_set
+            for item in items_to_add:
+                add_item(cur_dir, item, cur_item)
 
-                        # orange
-                        orange = QtGui.QColor(0xFF, 0x99, 0x33)
-                        file_item.setForeground(0, orange)
-                        file_item.setForeground(1, orange)
-                        file_item.setForeground(2, orange)
-                    elif file_item:
-                        file_item.setDisabled(True)
+            # 3. iterate over current sub-directories
+            def iterate_subdir(subdir_item: QtWidgets.QTreeWidgetItem):
+                full_path = os.path.join(cur_dir, subdir_item.text(0))
+                if os.path.isdir(full_path):
+                    iterate(full_path, subdir_item)
 
-        iterate(self.ui.source_folder.text(), self.ui.files_tree)
+            iterate_child_items(cur_item, iterate_subdir)
+
+        iterate(self.ui.source_folder.text(), None)
         self.ui.target_files_stats.setText(f"Total files: {stats['total_files']} | "
                                            f"on target: {stats['target_files']} | "
                                            f"queued: {stats['queued_files']}"
@@ -161,7 +226,7 @@ class MainDialog(QDialog):
         check_time_in_msec = self.ui.check_period.time().msecsSinceStartOfDay()
         # expand all items to let the user ability to see all the items while they're disabled
         # self.ui.files_tree.expandAll()
-        self.watcher.start(self.ui.source_folder.text(), datetime.timedelta(milliseconds=check_time_in_msec))
+        self.watcher.start(self._scan_folder, datetime.timedelta(milliseconds=check_time_in_msec))
         self._set_all_controls_enabled(False)
         self.ui.stop_watch.setEnabled(True)
 

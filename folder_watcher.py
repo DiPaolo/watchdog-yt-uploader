@@ -11,6 +11,7 @@ class FolderWatcher(object):
     def start(self, callback, period: datetime.timedelta = datetime.timedelta(seconds=10)):
         print(f'START for {period.seconds} sec, or {period.seconds / 60} min')
         self.period = period
+        self.callback = callback
         self._start()
 
     def _start(self):
