@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
+from PySide6 import QtCore
+from PySide6.QtCore import Signal
 from googleapiclient.http import MediaFileUpload
 import google.oauth2.credentials
 
@@ -22,13 +24,23 @@ user_cred_json = 'qqqwtf.json'
 
 @dataclass
 class MediaFile:
+    uuid: str
     filename: str
     title: str
     description: str
 
+@dataclass
+class UploadedFileInfo:
+    uuid: str
+    err_msg: str
+    uploaded_url: str
 
-class YouTubeUploader(object):
+
+class YouTubeUploader(QtCore.QObject):
+    fileUploaded = Signal(UploadedFileInfo)
+
     def __init__(self):
+        super().__init__()
         self.q = queue.Queue()
         self.worker = None
 
@@ -41,6 +53,7 @@ class YouTubeUploader(object):
             self.stop()
 
         self.worker = Worker(self.q)
+        self.worker.fileUploaded.connect(self.fileUploaded)
         self.worker.start()
 
     def stop(self):
@@ -53,39 +66,51 @@ class YouTubeUploader(object):
         self.q.put(media)
 
 
-class Worker(threading.Thread):
+class Worker(QtCore.QThread):
+    fileUploaded = Signal(UploadedFileInfo)
+
     def __init__(self, q, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.is_stopped = True
         self.q = q
-        super().__init__(*args, **kwargs)
 
     def run(self):
         logger.debug('start worker')
         self.is_stopped = False
-        while True:
+        while not self.is_stopped:
             item = None
             try:
                 item = self.q.get(timeout=1)
             except queue.Empty:
-                if self.is_stopped:
-                    return
+                pass
 
             if item:
-                logger.debug(f'process item from queue. Queue has approx. {self.q.qsize()} items left')
+                logger.debug(f'process item (UUID={item.uuid}) from queue. Queue has approx. {self.q.qsize()} items left')
                 if config.DEBUG:
-                    _upload_media_file_mock(item.filename, item.title, item.description)
+                    err_msg = _upload_media_file_mock(item.filename, item.title, item.description)
                 else:
-                    _upload_media_file(item.filename, item.title, item.description)
+                    err_msg = _upload_media_file(item.filename, item.title, item.description)
+
+                if err_msg == '':
+                    self.fileUploaded.emit(UploadedFileInfo(
+                        item.uuid,
+                        err_msg,
+                        ''))
+
                 self.q.task_done()
             else:
-                time.sleep(5)
+                time.sleep(1)
+
+        logger.debug('exiting working thread')
 
     def stop(self):
-        logger.debug('stop worker')
+        logger.debug('stop worker. waiting...')
         self.is_stopped = True
+        self.wait(10 * 1000)
+        logger.debug('stopped')
 
 
-def _upload_media_file(filename: str, title: str, description: str):
+def _upload_media_file(filename: str, title: str, description: str) -> str:
     # Disable OAuthlib's HTTPS verification when running locally.
     # *DO NOT* leave this option enabled in production.
     os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
@@ -137,10 +162,14 @@ def _upload_media_file(filename: str, title: str, description: str):
         logger.debug('Got the response:')
         logger.debug(response)
     except googleapiclient.errors.HttpError as e:
-        logger.debug(f'ERROR failed to upload video. Reason: {e.reason}')
+        err_msg = f'failed to upload video. Reason: {e.reason}'
+        logger.error(err_msg)
+        return err_msg
+
+    return ''
 
 
-def _upload_media_file_mock(filename: str, title: str, description: str):
+def _upload_media_file_mock(filename: str, title: str, description: str) -> str:
     duration_sec = random.randrange(3, 10)
     logger.info(f' === Upload {filename} to {config.UPLOADER_MOCK_DIR} in {duration_sec} seconds ===')
 
@@ -149,3 +178,5 @@ def _upload_media_file_mock(filename: str, title: str, description: str):
     shutil.copyfile(filename, os.path.join(config.UPLOADER_MOCK_DIR, os.path.basename(filename)))
 
     time.sleep(duration_sec)
+
+    return ''

@@ -16,6 +16,12 @@ class Storage(object):
         self.files = list()
 
     def add_media_file(self, file: str) -> str:
+        """
+        Add media file
+
+        :param file:
+        :return: UUID of the newly created item
+        """
         media_file = MediaFile(file)
 
         if self.contains_media_file(media_file):
@@ -25,7 +31,7 @@ class Storage(object):
         self.files.append(media_file)
         hash = media_file.hash()
         print(hash)
-        return hash
+        return media_file.uuid()
 
     def contains_media_file(self, file: MediaFile):
         for f in self.files:

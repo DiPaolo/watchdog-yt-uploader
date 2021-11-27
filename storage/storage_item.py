@@ -3,17 +3,22 @@
 import abc
 import hashlib
 import os
+import uuid
 from abc import ABC
 
 
 class StorageItem(abc.ABC):
     def __init__(self, path: str):
+        self._uuid = str(uuid.uuid1())
         self._path = os.path.abspath(path)
         self._hash = None
 
     @abc.abstractmethod
     def is_dir(self):
         pass
+
+    def uuid(self):
+        return self._uuid
 
     def path(self):
         return self._path

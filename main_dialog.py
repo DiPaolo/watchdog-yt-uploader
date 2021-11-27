@@ -11,7 +11,7 @@ import config
 import logger
 import settings
 import uploader.youtube_uploader
-from uploader.youtube_uploader import YouTubeUploader
+from uploader.youtube_uploader import YouTubeUploader, UploadedFileInfo
 from folder_watcher import FolderWatcher
 from settings import SettingsKey
 from storage.storage import Storage
@@ -25,6 +25,8 @@ class MainDialog(QDialog):
         self.storage = Storage()
         self.watcher = FolderWatcher()
         self.uploader = YouTubeUploader()
+        self.uploader.fileUploaded.connect(lambda media_file: print(f'YAHOOOOO {media_file.uuid}'))
+        self.uploader.fileUploaded.connect(self._update_tree_item)
 
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -48,10 +50,7 @@ class MainDialog(QDialog):
         # show target files only
         self.ui.show_target_files_only.clicked.connect(self._scan_folder)
 
-        #
         # file tree
-        #
-
         self._scan_folder()
 
         def resize_file_tree_columns():
@@ -140,19 +139,16 @@ class MainDialog(QDialog):
                     stats['target_files'] += 1
                     new_item.setDisabled(False)
                     new_item.setText(1, 'On Target')
-                    cur_file_hash = self.storage.add_media_file(full_path)
-                    if cur_file_hash == '':
+                    uuid = self.storage.add_media_file(full_path)
+                    if uuid == '':
                         logger.error(f'failed to add file {filename} into storage')
                         return None
                     else:
-                        new_item.setData(0, Qt.UserRole, cur_file_hash)
-                        self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(full_path, 'My title', 'My desc'))
+                        new_item.setData(0, Qt.UserRole, uuid)
+                        self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(uuid, full_path, 'My title', 'My desc'))
 
                     # orange
-                    orange = QtGui.QColor(0xFF, 0x99, 0x33)
-                    new_item.setForeground(0, orange)
-                    new_item.setForeground(1, orange)
-                    new_item.setForeground(2, orange)
+                    self._set_foreground_for_item(new_item, QtGui.QColor(0xFF, 0x99, 0x33))
                 elif new_item:
                     new_item.setDisabled(True)
 
@@ -230,6 +226,29 @@ class MainDialog(QDialog):
 
         self.uploader.stop()
 
+    @Slot()
+    def _update_tree_item(self, uploaded_file_info: UploadedFileInfo):
+        if not uploaded_file_info:
+            logger.error(f"failed to update tree element's info: empty uploaded file info received")
+            return
+
+        if not uploaded_file_info.uuid:
+            logger.error(f"failed to update tree element's info: got invalid uploaded file info (UUID='{uploaded_file_info.uuid}', "
+                         f"error='{uploaded_file_info.err_msg}'")
+            return
+
+        item = self._find_tree_item_by_uuid(uploaded_file_info.uuid)
+        if not item:
+            logger.error(f"failed to update tree element's info: unable to find tree element with UUID='{uploaded_file_info.uuid}'")
+            return
+
+        if uploaded_file_info.err_msg != '':
+            # error
+            item.setForeground(Qt.red)
+        else:
+            self._set_foreground_for_item(item, Qt.darkGreen)
+            item.setText(1, 'Uploaded')
+
     def _set_all_controls_enabled(self, enabled: bool = True):
         self.ui.source_folder.setEnabled(enabled)
         self.ui.choose_source_folder.setEnabled(enabled)
@@ -242,3 +261,33 @@ class MainDialog(QDialog):
         self.ui.check_period.setEnabled(enabled)
         self.ui.start_watch.setEnabled(enabled)
         self.ui.stop_watch.setEnabled(enabled)
+
+    def _find_tree_item_by_uuid(self, uuid: str) -> QtWidgets.QTreeWidgetItem:
+        if not uuid:
+            return None
+
+        def find_in_children(parent: QtWidgets.QTreeWidgetItem, uuid: str):
+            for i in range(0, parent.childCount()):
+                child_item = parent.child(i)
+                if child_item.data(0, Qt.UserRole) == uuid:
+                    return child_item
+                elif child_item.childCount() > 0:
+                    found_item = find_in_children(child_item, uuid)
+                    if found_item:
+                        return found_item
+            return None
+
+        for i in range(0, self.ui.files_tree.topLevelItemCount()):
+            top_level_item = self.ui.files_tree.topLevelItem(i)
+            if top_level_item.data(0, Qt.UserRole) == uuid:
+                return top_level_item
+            elif top_level_item.childCount() > 0:
+                found_item = find_in_children(top_level_item, uuid)
+                if found_item:
+                    return found_item
+        return None
+
+    def _set_foreground_for_item(self, item: QtWidgets.QTreeWidgetItem, color: QtGui.QColor):
+        item.setForeground(0, color)
+        item.setForeground(1, color)
+        item.setForeground(2, color)
