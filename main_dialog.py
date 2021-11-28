@@ -50,6 +50,14 @@ class MainDialog(QDialog):
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
 
+        # log; setup it before setting it as a target for logger
+        header = self.ui.log_list.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
+
+        logger.set_log_widget(self.ui.log_list)
+
         # restore position and state
         # self.setWindowState(settings.get_settings_byte_array_value(SettingsKey.WINDOW_STATE, QtCore.Qt.WindowNoState))
         self.restoreGeometry(settings.get_settings_byte_array_value(SettingsKey.WINDOW_GEOMETRY))
@@ -347,8 +355,6 @@ class MainDialog(QDialog):
                     stats['uploaded_files'] += 1
                 elif media_file.status() == StorageItemStatus.UPLOAD_FAILED:
                     stats['error_files'] += 1
-                # elif media_file.status() == StorageItemStatus.UPLOADING:
-                #     stats[] += 1
 
             for i in range(0, item.childCount()):
                 iterate(item.child(i))
@@ -356,10 +362,10 @@ class MainDialog(QDialog):
         self._iterate_child_items(None, iterate)
 
         self.ui.target_files_stats.setText(
-            f"<html><head/><body>"\
-            f"Total files: {stats['total_files']} | "\
-            f"on target: <span style='color: {_get_color_from_status(StorageItemStatus.ON_TARGET).name()}'>{stats['target_files']}</span> | "\
+            f"<html><head/><body>"
+            f"Total files: {stats['total_files']} | "
+            f"on target: <span style='color: {_get_color_from_status(StorageItemStatus.ON_TARGET).name()}'>{stats['target_files']}</span> | "
             # f"queued: {stats['queued_files']} | "\
-            f"uploaded: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOADED).name()}'>{stats['uploaded_files']}</span> | "\
-            f"error files: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOAD_FAILED).name()}'>{stats['error_files']}</span>"\
+            f"uploaded: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOADED).name()}'>{stats['uploaded_files']}</span> | "
+            f"error files: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOAD_FAILED).name()}'>{stats['error_files']}</span>"
             f"</body></html>")

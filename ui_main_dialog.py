@@ -198,7 +198,16 @@ class Ui_Dialog(object):
         self.gridLayout_3 = QGridLayout(self.tab_2)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.log_list = QTableWidget(self.tab_2)
+        if (self.log_list.columnCount() < 3):
+            self.log_list.setColumnCount(3)
+        __qtablewidgetitem = QTableWidgetItem()
+        self.log_list.setHorizontalHeaderItem(0, __qtablewidgetitem)
+        __qtablewidgetitem1 = QTableWidgetItem()
+        self.log_list.setHorizontalHeaderItem(1, __qtablewidgetitem1)
+        __qtablewidgetitem2 = QTableWidgetItem()
+        self.log_list.setHorizontalHeaderItem(2, __qtablewidgetitem2)
         self.log_list.setObjectName(u"log_list")
+        self.log_list.horizontalHeader().setStretchLastSection(True)
 
         self.gridLayout_3.addWidget(self.log_list, 0, 0, 1, 1)
 
@@ -250,6 +259,12 @@ class Ui_Dialog(object):
         self.target_files_stats.setText(QCoreApplication.translate("Dialog", u"<placeholder>", None))
         self.show_target_files_only.setText(QCoreApplication.translate("Dialog", u"Show Target Files Only", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Setup", None))
+        ___qtablewidgetitem = self.log_list.horizontalHeaderItem(0)
+        ___qtablewidgetitem.setText(QCoreApplication.translate("Dialog", u"Time", None));
+        ___qtablewidgetitem1 = self.log_list.horizontalHeaderItem(1)
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("Dialog", u"Severity", None));
+        ___qtablewidgetitem2 = self.log_list.horizontalHeaderItem(2)
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("Dialog", u"Message", None));
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Log", None))
     # retranslateUi
 
