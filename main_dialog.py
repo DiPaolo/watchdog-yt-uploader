@@ -3,9 +3,9 @@ import fnmatch
 import os
 
 from PySide6 import QtWidgets, QtGui, QtCore
-from PySide6.QtGui import Qt
-from PySide6.QtWidgets import QDialog, QFileDialog
-from PySide6.QtCore import Slot, QTimer
+from PySide6.QtGui import Qt, QPixmap, QIcon, QAction
+from PySide6.QtWidgets import QDialog, QFileDialog, QSystemTrayIcon, QStyle, QMenu
+from PySide6.QtCore import Slot, QTimer, Signal
 
 import logger
 import settings
@@ -37,6 +37,9 @@ def _set_foreground_for_item(item: QtWidgets.QTreeWidgetItem, color: QtGui.QColo
 
 
 class MainDialog(QDialog):
+    watchingStarted = Signal()
+    watchingStopped = Signal()
+
     def __init__(self):
         super(MainDialog, self).__init__()
 
@@ -46,6 +49,14 @@ class MainDialog(QDialog):
         self.watcher = FolderWatcher()
         self.uploader = YouTubeUploader()
         self.uploader.fileUploaded.connect(self._update_tree_item)
+
+        self.tray_icon = QSystemTrayIcon(self.style().standardIcon(QStyle.SP_DialogYesButton if self._is_watching() else QStyle.SP_DialogNoButton))
+        self.tray_icon.activated.connect(self._on_tray_icon_activated)
+        self.tray_icon.show()
+        self.watchingStarted.connect(lambda: self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_DialogYesButton)))
+        self.watchingStopped.connect(lambda: self.tray_icon.setIcon(self.style().standardIcon(QStyle.SP_DialogNoButton)))
+
+        self.tray_context_menu = self._create_tray_context_menu()
 
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
@@ -117,6 +128,43 @@ class MainDialog(QDialog):
 
         event.accept()
 
+    def _create_tray_context_menu(self) -> QMenu:
+        menu = QMenu(self)
+        start_action = menu.addAction('Start')
+        stop_action = menu.addAction('Stop')
+        menu.addSeparator()
+        quit_action = menu.addAction('Quit')
+
+        start_action.triggered.connect(self._start_watch)
+        stop_action.triggered.connect(self._stop_watch)
+        quit_action.triggered.connect(self.close)
+
+        def update_start_stop_actions():
+            start_action.setEnabled(not self._is_watching())
+            stop_action.setEnabled(self._is_watching())
+
+        self.watchingStarted.connect(update_start_stop_actions)
+        self.watchingStarted.connect(update_start_stop_actions)
+
+        # initial state
+        update_start_stop_actions()
+
+        return menu
+
+    @Slot(QSystemTrayIcon.ActivationReason)
+    def _on_tray_icon_activated(self, reason):
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            # show/hide main window
+            self.hide() if self.isVisible() else self.show()
+        elif reason == QSystemTrayIcon.ActivationReason.Context:
+            # show context menu
+            # self.tray_context_menu.activateWindow()
+            self.tray_context_menu.popup(QtGui.QCursor.pos())
+            # self.tray_context_menu.move(QtGui.QCursor.pos())
+            # self.tray_context_menu.show()
+            print(QtGui.QCursor.pos())
+            pass
+
     @Slot()
     def _choose_source_folder(self):
         src_dir = QFileDialog.getExistingDirectory(self,
@@ -178,6 +226,7 @@ class MainDialog(QDialog):
         self.ui.stop_watch.setEnabled(True)
 
         self.uploader.start()
+        self.watchingStarted.emit()
 
     @Slot()
     def _stop_watch(self):
@@ -186,6 +235,10 @@ class MainDialog(QDialog):
         self.ui.start_watch.setEnabled(True)
 
         self.uploader.stop()
+        self.watchingStopped.emit()
+
+    def _is_watching(self):
+        return self.watcher.is_running()
 
     @Slot()
     def _update_tree_item(self, uploaded_file_info: UploadedFileInfo):

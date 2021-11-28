@@ -22,7 +22,11 @@ class FolderWatcher(object):
         print('STOP')
         if self.t:
             self.t.cancel()
+            self.t = None
         self.callback = None
+
+    def is_running(self):
+        return self.t is not None
 
     def process(self):
         print('   process')
