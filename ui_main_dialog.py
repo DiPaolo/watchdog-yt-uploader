@@ -42,8 +42,8 @@ class Ui_Dialog(object):
         self.tabWidget.setTabShape(QTabWidget.Rounded)
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
-        self.gridLayout = QGridLayout(self.tab)
-        self.gridLayout.setObjectName(u"gridLayout")
+        self.gridLayout_4 = QGridLayout(self.tab)
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.horizontalLayout_2.setContentsMargins(-1, 5, -1, 5)
@@ -63,7 +63,7 @@ class Ui_Dialog(object):
         self.horizontalLayout_2.addWidget(self.choose_source_folder)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
+        self.gridLayout_4.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
 
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
@@ -83,7 +83,7 @@ class Ui_Dialog(object):
         self.horizontalLayout_5.addWidget(self.apply_target_files_mask)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_5, 1, 0, 1, 1)
+        self.gridLayout_4.addLayout(self.horizontalLayout_5, 1, 0, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
 #ifndef Q_OS_MAC
@@ -109,33 +109,34 @@ class Ui_Dialog(object):
         self.horizontalLayout.addWidget(self.upload_media)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout, 2, 0, 1, 1)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.target_files_stats = QLabel(self.tab)
-        self.target_files_stats.setObjectName(u"target_files_stats")
-
-        self.horizontalLayout_3.addWidget(self.target_files_stats)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
-
-        self.show_target_files_only = QCheckBox(self.tab)
-        self.show_target_files_only.setObjectName(u"show_target_files_only")
-
-        self.horizontalLayout_3.addWidget(self.show_target_files_only)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)
+        self.gridLayout_4.addLayout(self.horizontalLayout, 3, 0, 1, 1)
 
         self.files_tree = QTreeWidget(self.tab)
         self.files_tree.setObjectName(u"files_tree")
         self.files_tree.setSortingEnabled(True)
         self.files_tree.header().setStretchLastSection(True)
 
-        self.gridLayout.addWidget(self.files_tree, 4, 0, 1, 1)
+        self.gridLayout_4.addWidget(self.files_tree, 5, 0, 1, 1)
+
+        self.gridLayout = QGridLayout()
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.label_3 = QLabel(self.tab)
+        self.label_3.setObjectName(u"label_3")
+
+        self.gridLayout.addWidget(self.label_3, 0, 0, 1, 1)
+
+        self.title_template = QLineEdit(self.tab)
+        self.title_template.setObjectName(u"title_template")
+
+        self.gridLayout.addWidget(self.title_template, 0, 1, 1, 1)
+
+        self.label_4 = QLabel(self.tab)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout.addWidget(self.label_4, 1, 0, 1, 2)
+
+
+        self.gridLayout_4.addLayout(self.gridLayout, 2, 0, 1, 1)
 
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
@@ -170,7 +171,26 @@ class Ui_Dialog(object):
         self.horizontalLayout_6.addWidget(self.stop_watch)
 
 
-        self.gridLayout.addLayout(self.horizontalLayout_6, 5, 0, 1, 1)
+        self.gridLayout_4.addLayout(self.horizontalLayout_6, 6, 0, 1, 1)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.target_files_stats = QLabel(self.tab)
+        self.target_files_stats.setObjectName(u"target_files_stats")
+
+        self.horizontalLayout_3.addWidget(self.target_files_stats)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
+
+        self.show_target_files_only = QCheckBox(self.tab)
+        self.show_target_files_only.setObjectName(u"show_target_files_only")
+
+        self.horizontalLayout_3.addWidget(self.show_target_files_only)
+
+
+        self.gridLayout_4.addLayout(self.horizontalLayout_3, 4, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
@@ -216,17 +236,19 @@ class Ui_Dialog(object):
         self.apply_target_files_mask.setText(QCoreApplication.translate("Dialog", u"Apply", None))
         self.label_2.setText(QCoreApplication.translate("Dialog", u"YouTube Channel:", None))
         self.upload_media.setText(QCoreApplication.translate("Dialog", u"Change", None))
-        self.target_files_stats.setText(QCoreApplication.translate("Dialog", u"<placeholder>", None))
-        self.show_target_files_only.setText(QCoreApplication.translate("Dialog", u"Show Target Files Only", None))
         ___qtreewidgetitem = self.files_tree.headerItem()
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("Dialog", u"Actions", None));
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("Dialog", u"Status", None));
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("Dialog", u"File", None));
+        self.label_3.setText(QCoreApplication.translate("Dialog", u"Title:", None))
+        self.label_4.setText(QCoreApplication.translate("Dialog", u"(available template parameters: $FileYear - year; $FileMonth - month; $FileDay - day of a month)", None))
         self.label_6.setText(QCoreApplication.translate("Dialog", u"Check Period:", None))
         self.check_period.setDisplayFormat(QCoreApplication.translate("Dialog", u"HH:mm:ss", None))
         self.label_7.setText(QCoreApplication.translate("Dialog", u"(HH:mm:ss)", None))
         self.start_watch.setText(QCoreApplication.translate("Dialog", u"Start Watch", None))
         self.stop_watch.setText(QCoreApplication.translate("Dialog", u"Stop Watch", None))
+        self.target_files_stats.setText(QCoreApplication.translate("Dialog", u"<placeholder>", None))
+        self.show_target_files_only.setText(QCoreApplication.translate("Dialog", u"Show Target Files Only", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("Dialog", u"Setup", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("Dialog", u"Log", None))
     # retranslateUi

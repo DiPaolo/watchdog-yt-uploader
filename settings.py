@@ -7,6 +7,7 @@ class SettingsKey(Enum):
     WINDOW_STATE = 'windowState'
     SOURCE_FOLDER = 'sourceFolder'
     TARGET_FILES_MASK = 'targetFilesMask'
+    TITLE_TEMPLATE = 'titleTemplate'
     CHECK_PERIOD_MSECS = 'checkPeriodMsecs'
 
 

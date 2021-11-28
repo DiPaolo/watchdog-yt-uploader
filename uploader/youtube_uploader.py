@@ -171,7 +171,7 @@ def _upload_media_file(filename: str, title: str, description: str) -> str:
 
 def _upload_media_file_mock(filename: str, title: str, description: str) -> str:
     duration_sec = random.randrange(3, 10)
-    logger.info(f' === Upload {filename} to {config.UPLOADER_MOCK_DIR} in {duration_sec} seconds ===')
+    logger.info(f" === Upload {filename} (title '{title}') to {config.UPLOADER_MOCK_DIR} in {duration_sec} seconds ===")
 
     if not os.path.exists(config.UPLOADER_MOCK_DIR):
         os.mkdir(config.UPLOADER_MOCK_DIR)

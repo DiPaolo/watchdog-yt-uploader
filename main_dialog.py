@@ -66,6 +66,12 @@ class MainDialog(QDialog):
             lambda: settings.set_settings_str_value(SettingsKey.TARGET_FILES_MASK, self.ui.target_files_mask.text())
         )
 
+        # title template
+        self.ui.title_template.setText(settings.get_settings_str_value(SettingsKey.TITLE_TEMPLATE))
+        self.ui.title_template.textChanged.connect(
+            lambda: settings.set_settings_str_value(SettingsKey.TITLE_TEMPLATE, self.ui.title_template.text())
+        )
+
         # show target files only
         self.ui.show_target_files_only.clicked.connect(self._scan_folder)
 
@@ -160,20 +166,21 @@ class MainDialog(QDialog):
 
                     # try to find such one in storage
                     media_file = self.storage.get_media_file_by_name(full_path)
-                    if media_file:
-                        if media_file.status() == StorageItemStatus.ON_TARGET:
-                            self.uploader.queue_media_file(
-                                uploader.youtube_uploader.MediaFile(media_file.uuid(), full_path, 'My title',
-                                                                    'My desc'))
-                    else:
+                    if not media_file:
                         media_file = self.storage.add_new_media_file(full_path)
                         if not media_file:
                             logger.error(f'failed to add file {filename} into storage')
                             return None
-                        else:
-                            self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(media_file.uuid(), full_path, 'My title', 'My desc'))
 
                     # stats['target_files'] += 1
+
+                    if media_file:
+                        if media_file.status() == StorageItemStatus.ON_TARGET:
+                            self.uploader.queue_media_file(
+                                uploader.youtube_uploader.MediaFile(media_file.uuid(),
+                                                                    full_path,
+                                                                    self._get_title_from_template(media_file),
+                                                                    ''))
 
                     new_item.setData(0, Qt.UserRole, media_file.uuid())
                     new_item.setText(1, media_file.status().value)
@@ -291,6 +298,7 @@ class MainDialog(QDialog):
         self.ui.choose_source_folder.setEnabled(enabled)
         self.ui.target_files_mask.setEnabled(enabled)
         self.ui.apply_target_files_mask.setEnabled(enabled)
+        self.ui.title_template.setEnabled(enabled)
         self.ui.yt_channel_name.setEnabled(enabled)
         self.ui.upload_media.setEnabled(enabled)
         # self.ui.show_target_files_only.setEnabled(enabled)
@@ -323,3 +331,15 @@ class MainDialog(QDialog):
                 if found_item:
                     return found_item
         return None
+
+    def _get_title_from_template(self, media_file: storage.MediaFile) -> str:
+        text = self.ui.title_template.text()
+        try:
+            file_datetime = datetime.datetime.fromtimestamp(os.path.getmtime(media_file.path()))
+            text = text.replace('$FileYear', str(file_datetime.year))
+            text = text.replace('$FileMonth', str(file_datetime.month))
+            text = text.replace('$FileDay', str(file_datetime.day))
+        except Exception as e:
+            logger.error(f"failed to get title from template: {e}")
+            return ''
+        return text
