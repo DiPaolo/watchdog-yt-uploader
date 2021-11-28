@@ -1,4 +1,5 @@
 DEBUG = True
+STORAGE_VERSION = 1
 STORAGE_FILENAME = 'storage.json'
 # uploader mock
 USE_UPLOADER_MOCK = True

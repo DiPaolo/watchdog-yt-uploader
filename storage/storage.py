@@ -1,21 +1,55 @@
-import fnmatch
-import os
-from PySide6.QtCore import QDir
-from PySide6.QtWidgets import QApplication
+import json
+import os.path
 
+from PySide6.QtCore import QStandardPaths
+
+import config
 import logger
-from storage.storage_item import MediaFile
+from storage.storage_item import MediaFile, StorageItemStatus
 
 
 class Storage(object):
 
     def __init__(self):
-        # self.watch_folder = None
-        # self.media_files = list()
-        # self.target_file_mask = '*.mp4 *.mov *.ts *.mkv'
-        self.files = list()
+        self.files = dict()
 
-    def add_media_file(self, file: str) -> str:
+    def save(self):
+        try:
+            if not os.path.exists(self._get_storage_dir()):
+                os.mkdir(self._get_storage_dir())
+
+            with open(self._get_storage_full_filename(), 'w+') as f:
+                data = dict()
+                data['version'] = config.STORAGE_VERSION
+                data_files = list()
+                for uuid, file in self.files.items():
+                    data_files.append({
+                        'fullFilename': file.path(),
+                        'hash': file.hash(),
+                        'status': file.status().name
+                    })
+                data['files'] = data_files
+                f.write(json.dumps(data, indent=4))
+        except Exception as e:
+            logger.error(f'failed to save data: {e}')
+
+    def load(self):
+        try:
+            with open(self._get_storage_full_filename(), 'r') as f:
+                data = json.load(f)
+                # TODO check version and implement data migration
+                if 'files' in data:
+                    for file in data['files']:
+                        media_file = MediaFile(file['fullFilename'])
+                        media_file.set_status(StorageItemStatus[file['status']])
+                        # TODO check hash and compare with the one stored in the file
+                        self._add_media_file(media_file)
+        except FileNotFoundError as e:
+            pass
+        except Exception as e:
+            logger.error(f'failed to load data: {e}')
+
+    def add_new_media_file(self, file: str) -> MediaFile:
         """
         Add media file
 
@@ -28,72 +62,42 @@ class Storage(object):
             logger.error('failed to add file into storage: file already exists')
             return ''
 
-        self.files.append(media_file)
-        hash = media_file.hash()
-        print(hash)
-        return media_file.uuid()
+        self._add_media_file(media_file)
+        media_file.set_status(StorageItemStatus.ON_TARGET)
+        return media_file
+
+    def get_media_file_by_name(self, filename: str):
+        for uuid, f in self.files.items():
+            if filename == f.path():
+                return f
+        return None
+
+    def get_media_file_by_uuid(self, uuid: str):
+        return self.files[uuid] if uuid in self.files else None
+
+    def update_media_file(self, media_file: MediaFile):
+        f = self.get_media_file_by_uuid(media_file.uuid())
+        if not f:
+            self._add_media_file(media_file)
+        else:
+            self.files[media_file.uuid()] = media_file
 
     def contains_media_file(self, file: MediaFile):
-        for f in self.files:
+        for uuid, f in self.files.items():
             if file.hash() == f.hash():
                 return True
         return False
 
-    # def _get_filename(self):
-    #     storage_dir = os.path.join(QDir.homePath(), QApplication.applicationName())
-    #     if not (os.path.exists(storage_dir) and os.path.isdir(storage_dir)):
-    #         os.mkdir(storage_dir)
-    #
-    #     return storage_dir
-    #
-    # def set_target_file_mask(self, mask: str):
-    #     self.target_file_mask = mask
-    #
-    # def get_target_file_mask(self) -> str:
-    #     return self.target_file_mask
-    #
-    # def get_watch_folders(self):
-    #     pass
+    def _add_media_file(self, media_file: MediaFile):
+        if media_file.uuid() in self.files:
+            logger.error(f"media file already in storage: UUID {media_file.uuid()}")
+            return
 
-    # def set_watch_folder(self, watch_folder: str):
-    #     self.media_files.clear()
-    #     self.watch_folder = watch_folder
-    #     self.scan_folder(self.watch_folder)
+        self.files[media_file.uuid()] = media_file
 
-    # def scan_folder(self, folder: str):
-    #     for f in os.listdir(folder):
-    #         # dir or not
-    #         path = os.path.join(folder, f)
-    #         print(f"{f} {'   DIR' if os.path.isdir(path) else None}")
-    #         if os.path.isdir(path):
-    #             # dir_item = QtWidgets.QTreeWidgetItem(cur_item)
-    #             # dir_item.setText(0, f)
-    #             self.scan_folder(path)
-    #         else:
-    #             # stats['total_files'] += 1
-    #             # check mask
-    #             file_ext = os.path.splitext(f)
-    #             is_target = False
-    #             for mask in self.target_file_mask:
-    #                 par1 = [f]
-    #                 par2 = mask
-    #                 print(f"fnmatch.filter({par1}, {par2}) = {fnmatch.filter(par1, par2)}")
-    #                 print('')
-    #                 is_target = len(fnmatch.filter(par1, par2)) > 0
-    #                 if is_target:
-    #                     break
-    #
-    #             file_item = None
-    #             if is_target:
-    #                 pass
-    #                 # stats['target_files'] += 1
-    #                 # file_item.setDisabled(False)
-    #                 # file_item.setText(1, 'On Target')
-    #                 # # orange
-    #                 # orange = QtGui.QColor(0xFF, 0x99, 0x33)
-    #                 # file_item.setForeground(0, orange)
-    #                 # file_item.setForeground(1, orange)
-    #                 # file_item.setForeground(2, orange)
-    #             elif file_item:
-    #                 # file_item.setDisabled(True)
-    #                 pass
+    def _get_storage_dir(self):
+        return QStandardPaths.standardLocations(QStandardPaths.AppDataLocation)[0]
+
+    def _get_storage_full_filename(self):
+        storage_dir = self._get_storage_dir()
+        return os.path.join(storage_dir, config.STORAGE_FILENAME)

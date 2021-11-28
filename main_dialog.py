@@ -7,15 +7,33 @@ from PySide6.QtGui import Qt
 from PySide6.QtWidgets import QDialog, QFileDialog
 from PySide6.QtCore import Slot, QTimer
 
-import config
 import logger
 import settings
 import uploader.youtube_uploader
+from storage import storage
+from storage.storage_item import StorageItemStatus
 from uploader.youtube_uploader import YouTubeUploader, UploadedFileInfo
 from folder_watcher import FolderWatcher
 from settings import SettingsKey
 from storage.storage import Storage
 from ui_main_dialog import Ui_Dialog
+
+_STATUS_MAP = dict(
+    ON_TARGET=QtGui.QColor(0xFF, 0x99, 0x33),  # orange
+    UPLOADING=Qt.darkBlue,
+    UPLOAD_FAILED=Qt.red,
+    UPLOADED=Qt.darkGreen
+)
+
+
+def _get_color_from_status(status: StorageItemStatus) -> QtGui.QColor:
+    return _STATUS_MAP.get(status.name, Qt.black)
+
+
+def _set_foreground_for_item(item: QtWidgets.QTreeWidgetItem, color: QtGui.QColor):
+    item.setForeground(0, color)
+    item.setForeground(1, color)
+    item.setForeground(2, color)
 
 
 class MainDialog(QDialog):
@@ -23,9 +41,10 @@ class MainDialog(QDialog):
         super(MainDialog, self).__init__()
 
         self.storage = Storage()
+        self.storage.load()
+
         self.watcher = FolderWatcher()
         self.uploader = YouTubeUploader()
-        self.uploader.fileUploaded.connect(lambda media_file: print(f'YAHOOOOO {media_file.uuid}'))
         self.uploader.fileUploaded.connect(self._update_tree_item)
 
         self.ui = Ui_Dialog()
@@ -76,6 +95,7 @@ class MainDialog(QDialog):
     def closeEvent(self, event):
         self.watcher.stop()
         self.uploader.stop()
+        self.storage.save()
 
         # save window position and size
         settings.set_settings_byte_array_value(SettingsKey.WINDOW_GEOMETRY, self.saveGeometry())
@@ -136,19 +156,29 @@ class MainDialog(QDialog):
                     new_item.setText(0, filename)
 
                 if is_target:
-                    stats['target_files'] += 1
                     new_item.setDisabled(False)
-                    new_item.setText(1, 'On Target')
-                    uuid = self.storage.add_media_file(full_path)
-                    if uuid == '':
-                        logger.error(f'failed to add file {filename} into storage')
-                        return None
-                    else:
-                        new_item.setData(0, Qt.UserRole, uuid)
-                        self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(uuid, full_path, 'My title', 'My desc'))
 
-                    # orange
-                    self._set_foreground_for_item(new_item, QtGui.QColor(0xFF, 0x99, 0x33))
+                    # try to find such one in storage
+                    media_file = self.storage.get_media_file_by_name(full_path)
+                    if media_file:
+                        if media_file.status() == StorageItemStatus.ON_TARGET:
+                            self.uploader.queue_media_file(
+                                uploader.youtube_uploader.MediaFile(media_file.uuid(), full_path, 'My title',
+                                                                    'My desc'))
+                    else:
+                        media_file = self.storage.add_new_media_file(full_path)
+                        if not media_file:
+                            logger.error(f'failed to add file {filename} into storage')
+                            return None
+                        else:
+                            self.uploader.queue_media_file(uploader.youtube_uploader.MediaFile(media_file.uuid(), full_path, 'My title', 'My desc'))
+
+                    # stats['target_files'] += 1
+
+                    new_item.setData(0, Qt.UserRole, media_file.uuid())
+                    new_item.setText(1, media_file.status().value)
+                    cccc = _get_color_from_status(media_file.status())
+                    _set_foreground_for_item(new_item, cccc)
                 elif new_item:
                     new_item.setDisabled(True)
 
@@ -237,17 +267,24 @@ class MainDialog(QDialog):
                          f"error='{uploaded_file_info.err_msg}'")
             return
 
-        item = self._find_tree_item_by_uuid(uploaded_file_info.uuid)
-        if not item:
+        tree_item = self._find_tree_item_by_uuid(uploaded_file_info.uuid)
+        if not tree_item:
             logger.error(f"failed to update tree element's info: unable to find tree element with UUID='{uploaded_file_info.uuid}'")
             return
 
-        if uploaded_file_info.err_msg != '':
-            # error
-            item.setForeground(Qt.red)
-        else:
-            self._set_foreground_for_item(item, Qt.darkGreen)
-            item.setText(1, 'Uploaded')
+        media_file = self.storage.get_media_file_by_uuid(uploaded_file_info.uuid)
+
+        upload_failed = uploaded_file_info.err_msg != ''
+        media_file.set_status(StorageItemStatus.UPLOAD_FAILED if upload_failed else StorageItemStatus.UPLOADED)
+
+        tree_item.setText(1, media_file.status().value)
+        _set_foreground_for_item(tree_item, _get_color_from_status(media_file.status()))
+
+        # self._sync_to_storage(media_file)
+
+    @Slot()
+    def _sync_to_storage(self, media_file: storage.MediaFile):
+        self.storage.update_media_file(media_file)
 
     def _set_all_controls_enabled(self, enabled: bool = True):
         self.ui.source_folder.setEnabled(enabled)
@@ -286,8 +323,3 @@ class MainDialog(QDialog):
                 if found_item:
                     return found_item
         return None
-
-    def _set_foreground_for_item(self, item: QtWidgets.QTreeWidgetItem, color: QtGui.QColor):
-        item.setForeground(0, color)
-        item.setForeground(1, color)
-        item.setForeground(2, color)

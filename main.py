@@ -7,7 +7,7 @@ from folder_watcher import FolderWatcher
 from main_dialog import MainDialog
 
 if __name__ == "__main__":
-    QCoreApplication.setOrganizationName("DiPaolo")
+    # QCoreApplication.setOrganizationName("DiPaolo Company")
     QCoreApplication.setOrganizationDomain("dipaolo.com")
     QCoreApplication.setApplicationName("watchdog-yt-uploader")
 
