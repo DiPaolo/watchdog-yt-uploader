@@ -20,9 +20,9 @@ from ui_main_dialog import Ui_Dialog
 
 _STATUS_MAP = dict(
     ON_TARGET=QtGui.QColor(0xFF, 0x99, 0x33),  # orange
-    UPLOADING=Qt.darkBlue,
-    UPLOAD_FAILED=Qt.red,
-    UPLOADED=Qt.darkGreen
+    UPLOADING=QtGui.QColor(Qt.darkBlue),
+    UPLOAD_FAILED=QtGui.QColor(Qt.red),
+    UPLOADED=QtGui.QColor(Qt.darkGreen)
 )
 
 
@@ -121,91 +121,11 @@ class MainDialog(QDialog):
 
     @Slot()
     def _scan_folder(self):
-        file_mask = self.ui.target_files_mask.text().split(' ')
-
-        show_target_files_only = self.ui.show_target_files_only.isChecked()
-        stats = dict(
-            total_files=0,
-            target_files=0,
-            queued_files=0,
-            uploaded_files=0,
-            error_files=0,
-        )
-
-        def add_item(path: str, filename: str, parent: QtWidgets.QTreeWidgetItem) -> QtWidgets.QTreeWidgetItem:
-            """
-            Add new item into the tree widget
-
-            :param filename:
-            :param path:
-            :param parent: can be None what means the new item must be added on top level
-            :return: the newly created item or None if failed
-            """
-
-            new_item = QtWidgets.QTreeWidgetItem()
-
-            # dir or not
-            full_path = os.path.join(path, filename)
-            if os.path.isdir(full_path):
-                new_item.setText(0, filename)
-            else:
-                stats['total_files'] += 1
-
-                # check mask
-                is_target = False
-                for mask in file_mask:
-                    is_target = len(fnmatch.filter([filename], mask)) > 0
-                    if is_target:
-                        break
-
-                if is_target or not show_target_files_only:
-                    new_item.setText(0, filename)
-
-                if is_target:
-                    new_item.setDisabled(False)
-
-                    # try to find such one in storage
-                    media_file = self.storage.get_media_file_by_name(full_path)
-                    if not media_file:
-                        media_file = self.storage.add_new_media_file(full_path)
-                        if not media_file:
-                            logger.error(f'failed to add file {filename} into storage')
-                            return None
-
-                    # stats['target_files'] += 1
-
-                    if media_file:
-                        if media_file.status() == StorageItemStatus.ON_TARGET:
-                            self.uploader.queue_media_file(
-                                uploader.youtube_uploader.MediaFile(media_file.uuid(),
-                                                                    full_path,
-                                                                    self._get_title_from_template(media_file),
-                                                                    ''))
-
-                    new_item.setData(0, Qt.UserRole, media_file.uuid())
-                    new_item.setText(1, media_file.status().value)
-                    cccc = _get_color_from_status(media_file.status())
-                    _set_foreground_for_item(new_item, cccc)
-                elif new_item:
-                    new_item.setDisabled(True)
-
-            parent.addChild(new_item) if parent else self.ui.files_tree.addTopLevelItem(new_item)
-            return new_item
-
         def iterate(cur_dir: str, cur_item: QtWidgets.QTreeWidgetItem):
-
-            def iterate_child_items(parent_item: QtWidgets.QTreeWidgetItem, func):
-                if parent_item is None:
-                    for idx in range(0, self.ui.files_tree.topLevelItemCount()):
-                        func(self.ui.files_tree.topLevelItem(idx))
-                else:
-                    for idx in range(0, parent_item.childCount()):
-                        func(parent_item.child(idx))
-
             # prepare two sets (current state of disk + current state in TreeWidget) to compare them later
             disk_set = set(os.listdir(cur_dir))
             ui_set = set()
-            iterate_child_items(cur_item, lambda child_item: ui_set.add(child_item.text(0)))
+            self._iterate_child_items(cur_item, lambda child_item: ui_set.add(child_item.text(0)))
 
             # 1. remove outdated items from tree
             items_to_remove = ui_set - disk_set
@@ -227,7 +147,7 @@ class MainDialog(QDialog):
             # 2. add new ones to the tree
             items_to_add = disk_set - ui_set
             for item in items_to_add:
-                add_item(cur_dir, item, cur_item)
+                self._add_item(cur_dir, item, cur_item)
 
             # 3. iterate over current sub-directories
             def iterate_subdir(subdir_item: QtWidgets.QTreeWidgetItem):
@@ -235,14 +155,10 @@ class MainDialog(QDialog):
                 if os.path.isdir(full_path):
                     iterate(full_path, subdir_item)
 
-            iterate_child_items(cur_item, iterate_subdir)
+            self._iterate_child_items(cur_item, iterate_subdir)
 
         iterate(self.ui.source_folder.text(), None)
-        self.ui.target_files_stats.setText(f"Total files: {stats['total_files']} | "
-                                           f"on target: {stats['target_files']} | "
-                                           f"queued: {stats['queued_files']}"
-                                           f"uploaded: {stats['uploaded_files']} | "
-                                           f"error files: {stats['error_files']}")
+        self._update_stats_text()
 
     @Slot()
     def _start_watch(self):
@@ -287,7 +203,7 @@ class MainDialog(QDialog):
         tree_item.setText(1, media_file.status().value)
         _set_foreground_for_item(tree_item, _get_color_from_status(media_file.status()))
 
-        # self._sync_to_storage(media_file)
+        self._update_stats_text()
 
     @Slot()
     def _sync_to_storage(self, media_file: storage.MediaFile):
@@ -306,6 +222,72 @@ class MainDialog(QDialog):
         self.ui.check_period.setEnabled(enabled)
         self.ui.start_watch.setEnabled(enabled)
         self.ui.stop_watch.setEnabled(enabled)
+
+    def _iterate_child_items(self, parent_item: QtWidgets.QTreeWidgetItem, func):
+        if parent_item is None:
+            for idx in range(0, self.ui.files_tree.topLevelItemCount()):
+                func(self.ui.files_tree.topLevelItem(idx))
+        else:
+            for idx in range(0, parent_item.childCount()):
+                func(parent_item.child(idx))
+
+    def _add_item(self, path: str, filename: str, parent: QtWidgets.QTreeWidgetItem) -> QtWidgets.QTreeWidgetItem:
+        """
+        Add new item into the tree widget
+
+        :param filename:
+        :param path:
+        :param parent: can be None what means the new item must be added on top level
+        :return: the newly created item or None if failed
+        """
+
+        file_mask = self.ui.target_files_mask.text().split(' ')
+        show_target_files_only = self.ui.show_target_files_only.isChecked()
+
+        new_item = QtWidgets.QTreeWidgetItem()
+
+        # dir or not
+        full_path = os.path.join(path, filename)
+        if os.path.isdir(full_path):
+            new_item.setText(0, filename)
+        else:
+            # check mask
+            is_target = False
+            for mask in file_mask:
+                is_target = len(fnmatch.filter([filename], mask)) > 0
+                if is_target:
+                    break
+
+            if is_target or not show_target_files_only:
+                new_item.setText(0, filename)
+
+            if is_target:
+                new_item.setDisabled(False)
+
+                # try to find such one in storage
+                media_file = self.storage.get_media_file_by_name(full_path)
+                if not media_file:
+                    media_file = self.storage.add_new_media_file(full_path)
+                    if not media_file:
+                        logger.error(f'failed to add file {filename} into storage')
+                        return None
+
+                if media_file:
+                    if media_file.status() == StorageItemStatus.ON_TARGET:
+                        self.uploader.queue_media_file(
+                            uploader.youtube_uploader.MediaFile(media_file.uuid(),
+                                                                full_path,
+                                                                self._get_title_from_template(media_file),
+                                                                ''))
+
+                new_item.setData(0, Qt.UserRole, media_file.uuid())
+                new_item.setText(1, media_file.status().value)
+                _set_foreground_for_item(new_item, _get_color_from_status(media_file.status()))
+            elif new_item:
+                new_item.setDisabled(True)
+
+        parent.addChild(new_item) if parent else self.ui.files_tree.addTopLevelItem(new_item)
+        return new_item
 
     def _find_tree_item_by_uuid(self, uuid: str) -> QtWidgets.QTreeWidgetItem:
         if not uuid:
@@ -343,3 +325,41 @@ class MainDialog(QDialog):
             logger.error(f"failed to get title from template: {e}")
             return ''
         return text
+
+    def _update_stats_text(self):
+        stats = dict(
+            total_files=0,
+            target_files=0,
+            uploaded_files=0,
+            error_files=0,
+        )
+
+        def iterate(item: QtWidgets.QTreeWidgetItem):
+            # not directory; count it
+            if item.childCount() == 0:
+                stats['total_files'] += 1
+
+            media_file = self.storage.get_media_file_by_uuid(item.data(0, Qt.UserRole))
+            if media_file:
+                if media_file.status() == StorageItemStatus.ON_TARGET:
+                    stats['target_files'] += 1
+                elif media_file.status() == StorageItemStatus.UPLOADED:
+                    stats['uploaded_files'] += 1
+                elif media_file.status() == StorageItemStatus.UPLOAD_FAILED:
+                    stats['error_files'] += 1
+                # elif media_file.status() == StorageItemStatus.UPLOADING:
+                #     stats[] += 1
+
+            for i in range(0, item.childCount()):
+                iterate(item.child(i))
+
+        self._iterate_child_items(None, iterate)
+
+        self.ui.target_files_stats.setText(
+            f"<html><head/><body>"\
+            f"Total files: {stats['total_files']} | "\
+            f"on target: <span style='color: {_get_color_from_status(StorageItemStatus.ON_TARGET).name()}'>{stats['target_files']}</span> | "\
+            # f"queued: {stats['queued_files']} | "\
+            f"uploaded: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOADED).name()}'>{stats['uploaded_files']}</span> | "\
+            f"error files: <span style='color: {_get_color_from_status(StorageItemStatus.UPLOAD_FAILED).name()}'>{stats['error_files']}</span>"\
+            f"</body></html>")
